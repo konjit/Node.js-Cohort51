@@ -71,13 +71,11 @@ app.get("/blogs/:title", (req, res) => {
 // BONUS: Get all blogs
 app.get("/blogs/", (req, res) => {
   const blogs = fs.readdirSync(blogsDir);
-  if(!blogs){
+  if (!blogs) {
     res.status(500).send({ message: " The resource posts does not exist." });
   }
   const blogTitles = blogs.map((blog) => ({ title: blog }));
   res.status(200).send(blogTitles);
-
-  
 });
 
 app.listen(3000);
