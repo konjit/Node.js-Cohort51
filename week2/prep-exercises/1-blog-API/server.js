@@ -5,6 +5,7 @@ import fs from "fs";
 const app = express();
 
 const blogsDir = path.resolve("blogs");
+const PORT = 3000;
 
 app.use(express.json());
 
@@ -17,19 +18,24 @@ app.post("/blogs", (req, res) => {
   const { title, content } = req.body;
 
   if (!title || !content) {
-    return res.status(400).send({ message: "Content is required." });
+    return res.status(400).send({ message: "Title and content are required." });
   }
   const filePath = path.join(blogsDir, title);
-  const submitBlog = () => {
-    fs.writeFileSync(filePath, content);
-    res.status(200).send({ message: "Blog is created successfully." });
-  };
+  const submitBlog = () =>
+    handleFileOperation(() => fs.writeFileSync(filePath, content));
 
-  handleFileOperation(submitBlog, res, filePath, content);
+  const result = submitBlog();
+  console.log(result);
+  if (!result) {
+    return res
+      .status(500)
+      .send({ message: "Something went wrong, please try again." });
+  }
+  res.status(200).send({ message: "Blog is submitted successfully." });
 });
 
 // Update a blog
-app.put("/posts/:title", (req, res) => {
+app.put("/blogs/:title", (req, res) => {
   const { content } = req.body;
   const title = req.params.title;
 
@@ -38,14 +44,20 @@ app.put("/posts/:title", (req, res) => {
   }
 
   const filePath = path.join(blogsDir, title);
-  checkFileExists(filePath, res);
+  if (!doesAFileExists(filePath)) {
+    return res.status(404).send({ message: "Blog is not found." });
+  }
 
-  const updateBlog = () => {
-    fs.writeFileSync(filePath, content);
-    res.status(201).send({ message: "Blog is updated successfully" });
-  };
+  const updateBlog = () =>
+    handleFileOperation(() => fs.writeFileSync(filePath, content));
 
-  handleFileOperation(updateBlog, res, filePath, content);
+  const result = updateBlog();
+  if (!result) {
+    return res
+      .status(500)
+      .send({ message: "Something went wrong, please try again." });
+  }
+  res.status(201).send({ message: "Blog is updated successfully" });
 });
 
 // Delete a blog
@@ -53,62 +65,74 @@ app.delete("/blogs/:title", (req, res) => {
   const title = req.params.title;
 
   const filePath = path.join(blogsDir, title);
+  if (!doesAFileExists(filePath)) {
+    return res.status(404).send({ message: "Blog is not found." });
+  }
+  const deleteBlog = () => handleFileOperation(() => fs.unlinkSync(filePath));
 
-  checkFileExists(filePath, res);
+  const result = deleteBlog();
+  if (!result) {
+    return res
+      .status(500)
+      .send({ message: "Something went wrong, please try again." });
+  }
 
-  const deleteBlog = () => {
-    fs.unlinkSync(filePath);
-    res.status(200).send({ message: "Blog is deleted successfully." });
-  };
-  handleFileOperation(deleteBlog, res, filePath);
+  res.status(200).send({ message: "Blog is deleted successfully." });
 });
 
 // Read a blog
 app.get("/blogs/:title", (req, res) => {
   const title = req.params.title;
+
   const filePath = path.join(blogsDir, title);
+  if (!doesAFileExists(filePath)) {
+    return res.status(404).send({ message: "Blog is not found." });
+  }
 
-  checkFileExists(filePath, res);
+  let blog = null;
+  const readBlog = () => handleFileOperation(() => blog = fs.readFileSync(filePath, "utf-8"));
 
-  const encoding = "utf-8";
-  const readBlog = () => {
-    const post = fs.readFileSync(filePath, encoding);
-    res.setHeader("Content-Type", "text/plain");
-    res.status(200).send(post);
-  };
+  const result = readBlog();
+  if (!result) {
+    return res
+      .status(500)
+      .send({ message: "Something went wrong, please try again." });
+  }
 
-  handleFileOperation(readBlog, res, filePath, encoding);
+  res.setHeader("Content-Type", "text/plain");
+  res.status(200).send(blog);
 });
 
 // BONUS: Get all blogs
 app.get("/blogs/", (req, res) => {
-  const blogs = fs.readdirSync(blogsDir);
-  const getBlogs = () => {
-    if (!blogs) {
-      res.status(500).send({ message: "No blog is found." });
-    }
-    const blogTitles = blogs.map((blog) => ({ title: blog }));
-    res.status(200).send(blogTitles);
-  };
+  const blogs = [];
+  const getBlogs = () => handleFileOperation(() =>{ 
+   blogs.push(...fs.readdirSync(blogsDir))
+  });
 
-  handleFileOperation(getBlogs, res, blogs);
+  const result = getBlogs();
+  if (!result) {
+    return res
+      .status(500)
+      .send({ message: "Something went wrong, please try again." });
+  }
+
+  const blogTitles = blogs.map((blog) => ({ title: blog }));
+  res.status(200).send(blogTitles);
 });
 
+/** Checks if a specified file exists or not. */
+const doesAFileExists = (filePath) => fs.existsSync(filePath);
+
 /** A helper function that checks if a file operation is a success or failure. */
-
-const handleFileOperation = (operation, ...args) => {
+const handleFileOperation = (fileOperation) => {
   try {
-    return operation(...args);
+    fileOperation();
+    return true;
   } catch (err) {
-    res.status(500).send({ message: `Error occurred while ${msg}` });
+    console.log("Error occurred during file operation.");
+    return false;
   }
 };
 
-/*Checks if a specified file exists or not. */
-const checkFileExists = (filePath, res) => {
-  if (!fs.existsSync(filePath)) {
-    return res.status(404).send("This blog does not exist.");
-  }
-};
-
-app.listen(3000);
+app.listen(PORT);
