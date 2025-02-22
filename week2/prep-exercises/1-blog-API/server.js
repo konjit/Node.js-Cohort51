@@ -3,11 +3,10 @@ import path from "path";
 import fs from "fs";
 
 const app = express();
+app.use(express.json());
 
 const blogsDir = path.resolve("blogs");
 const PORT = 3000;
-
-app.use(express.json());
 
 app.get("/", function (req, res) {
   res.send("Hello World");
@@ -20,17 +19,16 @@ app.post("/blogs", (req, res) => {
   if (!title || !content) {
     return res.status(400).send({ message: "Title and content are required." });
   }
-  const filePath = path.join(blogsDir, title);
-  const submitBlog = () =>
-    handleFileOperation(() => fs.writeFileSync(filePath, content));
 
-  const result = submitBlog();
-  console.log(result);
-  if (!result) {
+  const filePath = path.join(blogsDir, title);
+  const submitBlog = isFileOperationSuccess(() => fs.writeFileSync(filePath, content));
+
+  if (!submitBlog) {
     return res
       .status(500)
       .send({ message: "Something went wrong, please try again." });
   }
+
   res.status(200).send({ message: "Blog is submitted successfully." });
 });
 
@@ -39,20 +37,17 @@ app.put("/blogs/:title", (req, res) => {
   const { content } = req.body;
   const title = req.params.title;
 
-  if (!title || !content) {
-    return res.status(400).send({ message: "Content is required." });
-  }
-
   const filePath = path.join(blogsDir, title);
-  if (!doesAFileExists(filePath)) {
+  if (!doesAFileExist(filePath)) {
     return res.status(404).send({ message: "Blog is not found." });
   }
 
-  const updateBlog = () =>
-    handleFileOperation(() => fs.writeFileSync(filePath, content));
+  if (!content) {
+    return res.status(400).send({ message: "Content is required." });
+  }
 
-  const result = updateBlog();
-  if (!result) {
+  const isBlogUpdated = isFileOperationSuccess(() => fs.writeFileSync(filePath, content));
+  if (!isBlogUpdated) {
     return res
       .status(500)
       .send({ message: "Something went wrong, please try again." });
@@ -63,15 +58,18 @@ app.put("/blogs/:title", (req, res) => {
 // Delete a blog
 app.delete("/blogs/:title", (req, res) => {
   const title = req.params.title;
+  
+  if (!title) {
+    return res.status(400).send({ message: "Title is required." });
+  }
 
   const filePath = path.join(blogsDir, title);
-  if (!doesAFileExists(filePath)) {
+  if (!doesAFileExist(filePath)) {
     return res.status(404).send({ message: "Blog is not found." });
   }
-  const deleteBlog = () => handleFileOperation(() => fs.unlinkSync(filePath));
 
-  const result = deleteBlog();
-  if (!result) {
+  const isBlogDeleted = isFileOperationSuccess(() => fs.unlinkSync(filePath));
+  if (!isBlogDeleted) {
     return res
       .status(500)
       .send({ message: "Something went wrong, please try again." });
@@ -85,15 +83,14 @@ app.get("/blogs/:title", (req, res) => {
   const title = req.params.title;
 
   const filePath = path.join(blogsDir, title);
-  if (!doesAFileExists(filePath)) {
+  if (!doesAFileExist(filePath)) {
     return res.status(404).send({ message: "Blog is not found." });
   }
 
   let blog = null;
-  const readBlog = () => handleFileOperation(() => blog = fs.readFileSync(filePath, "utf-8"));
+  const isBlogRead = isFileOperationSuccess(() => blog = fs.readFileSync(filePath, "utf-8"));
 
-  const result = readBlog();
-  if (!result) {
+  if (!isBlogRead) {
     return res
       .status(500)
       .send({ message: "Something went wrong, please try again." });
@@ -106,12 +103,11 @@ app.get("/blogs/:title", (req, res) => {
 // BONUS: Get all blogs
 app.get("/blogs/", (req, res) => {
   const blogs = [];
-  const getBlogs = () => handleFileOperation(() =>{ 
+  const allBlogsAvail = isFileOperationSuccess(() =>{ 
    blogs.push(...fs.readdirSync(blogsDir))
   });
-
-  const result = getBlogs();
-  if (!result) {
+ 
+  if (!allBlogsAvail) {
     return res
       .status(500)
       .send({ message: "Something went wrong, please try again." });
@@ -122,10 +118,10 @@ app.get("/blogs/", (req, res) => {
 });
 
 /** Checks if a specified file exists or not. */
-const doesAFileExists = (filePath) => fs.existsSync(filePath);
+const doesAFileExist = (filePath) => fs.existsSync(filePath);
 
 /** A helper function that checks if a file operation is a success or failure. */
-const handleFileOperation = (fileOperation) => {
+const isFileOperationSuccess = (fileOperation) => {
   try {
     fileOperation();
     return true;
