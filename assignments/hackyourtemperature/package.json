@@ -5,7 +5,8 @@
   "main": "server.js",
   "scripts": {
     "start": "nodemon server.js",
-    "dev": "node --watch server"
+    "dev": "node --watch server",
+    "test": "jest"
   },
   "keywords": [],
   "author": "",
@@ -15,5 +16,11 @@
     "express": "^4.21.2",
     "express-handlebars": "^8.0.1",
     "node-fetch": "^3.3.2"
+  },
+  "devDependencies": {
+    "@babel/preset-env": "^7.26.9",
+    "babel-test": "^0.2.4",
+    "jest": "^29.7.0",
+    "supertest": "^7.0.0"
   }
 }

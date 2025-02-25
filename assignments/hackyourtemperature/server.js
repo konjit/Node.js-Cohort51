@@ -1,21 +1,11 @@
-import express from "express";
+/** 
+ * File: server.js
+ * Description: Sets up a server to listen on port 3000 for incoming requests.
+ */
+
+
+import app from "./app.js"
 
 const PORT = 3000;
-
-const app = express();
-app.use(express.json())
-
-
-app.get('/', (req, res)=>{
-  res.status(200).send("hello from backend to frontend!");
-})
-
-app.post('/weather', (req, res) => {
-  const cityName = req.body.cityName;
-  if(!cityName) {
-    return res.status(404).json({message: "City name is required."})
-  }
-  res.status(200).json({cityName: cityName});
-})
 
 app.listen(PORT);
