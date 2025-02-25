@@ -99,7 +99,7 @@ describe("POST /weather", () => {
   });
 
   // Tests for wrong endpoint
-  describe("Given a wrong endpoint", () => {
+  describe("Given a wrong end point", () => {
     it("should return 404", async () => {
       const cityName = "Addis Ababa";
       const wrongUrl = helper.getWeatherUrlWithWrongEndPoint(cityName);
