@@ -43,14 +43,14 @@ import {v4 as uuid} from 'uuid'
 
 const makeInMemoryDb = () => {
     const localDb = []
-
+   
     return {
         create: (user) => {
             const storedUser = {
                 ...user,
                 id: uuid()
             }
-
+           
             localDb.push(storedUser)
 
             return storedUser
@@ -61,10 +61,10 @@ const makeInMemoryDb = () => {
     }
 }
 
-const makeNewLokiDatabase = () => {
+export const makeNewLokiDatabase = () => {
     const db = new Loki('sandbox.db');
     const users = db.addCollection('users');
-
+   
     return {
         create: (user) => {
             const storedUser = {
@@ -73,11 +73,14 @@ const makeNewLokiDatabase = () => {
             }
 
             users.insert(storedUser)
-
+            db.saveDatabase(); 
             return storedUser
         },
         getById: (id) => {
             return users.findOne({id}) || undefined
+        },
+        getAllUsers: () => {
+            return users.find();
         }
     }
 }
